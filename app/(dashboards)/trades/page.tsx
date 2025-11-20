@@ -79,6 +79,12 @@ function formatDateTime(value: string | null) {
   })
 }
 
+// Prefer close_time, then open_time, then timestamp
+function formatTradeDate(trade: Trade) {
+  const value = trade.close_time || trade.open_time || trade.timestamp
+  return formatDateTime(value)
+}
+
 export default function TradesPage() {
   const router = useRouter()
 
@@ -127,7 +133,8 @@ export default function TradesPage() {
   const totalTrades = trades.length
   const totalPnl = trades.reduce((sum, t) => sum + (t.pnl ?? 0), 0)
   const lastTrade = trades[0] ?? null
-  const lastTradeDate = lastTrade?.timestamp ?? null
+  const lastTradeDate =
+    lastTrade?.close_time || lastTrade?.open_time || lastTrade?.timestamp || null
 
   // ====== Form helpers ======
   const handleChange = (field: keyof NewTradeForm, value: string) => {
@@ -198,21 +205,35 @@ export default function TradesPage() {
       return
     }
 
+    const nowIso = new Date().toISOString()
+
     const { data, error } = await supabase
       .from('trades')
       .insert({
         user_id: user.id,
+        timestamp: nowIso,
         pair: pair.trim(),
         direction,
         entry: entryNum,
+        exit_price: null,
         sl: slNum,
         tp: tpNum,
         size: sizeNum,
         trade_type: trade_type.trim(),
+        platform: 'manual',
+        strategy: null,
+        account_id: null,
+        ticket: null,
+        status: 'closed',
+        open_time: nowIso,
+        close_time: nowIso,
         pnl: pnlNum,
         pnl_percentage: pnlPercNum,
         result_r: rNum,
         notes: notes.trim() || null,
+        pnl_currency: null,
+        commission: null,
+        swap: null,
       })
       .select('*')
       .single()
@@ -261,7 +282,8 @@ export default function TradesPage() {
               Add new trade
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Manually added trades are treated the same as automated trades in your dashboards.
+              Manually added trades are treated the same as automated trades in
+              your dashboards.
             </p>
           </div>
           <p className="hidden text-right text-xs text-slate-500 sm:block">
@@ -300,7 +322,9 @@ export default function TradesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Entry</label>
+              <label className="text-xs font-medium text-slate-400">
+                Entry
+              </label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 placeholder="1.0850"
@@ -310,7 +334,9 @@ export default function TradesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">Size (lot)</label>
+              <label className="text-xs font-medium text-slate-400">
+                Size (lot)
+              </label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 placeholder="0.50"
@@ -322,7 +348,9 @@ export default function TradesPage() {
 
           <div className="grid gap-3 md:grid-cols-4">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">SL</label>
+              <label className="text-xs font-medium text-slate-400">
+                SL
+              </label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 placeholder="1.0800"
@@ -332,7 +360,9 @@ export default function TradesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-400">TP</label>
+              <label className="text-xs font-medium text-slate-400">
+                TP
+              </label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 placeholder="1.0950"
@@ -483,7 +513,7 @@ export default function TradesPage() {
                   return (
                     <tr key={trade.id} className="text-[11px] text-slate-200">
                       <td className="whitespace-nowrap px-6 py-2">
-                        {formatDateTime(trade.timestamp)}
+                        {formatTradeDate(trade)}
                       </td>
                       <td className="px-3 py-2">{trade.pair ?? '—'}</td>
                       <td className="px-3 py-2">
@@ -530,10 +560,14 @@ export default function TradesPage() {
                         {trade.ticket ?? '—'}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">
-                        {trade.open_time ? formatDateTime(trade.open_time) : '—'}
+                        {trade.open_time
+                          ? formatDateTime(trade.open_time)
+                          : '—'}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap">
-                        {trade.close_time ? formatDateTime(trade.close_time) : '—'}
+                        {trade.close_time
+                          ? formatDateTime(trade.close_time)
+                          : '—'}
                       </td>
                       <td className={`px-3 py-2 ${pnlColor}`}>
                         {trade.pnl !== null ? trade.pnl.toFixed(2) : '—'}

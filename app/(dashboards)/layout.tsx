@@ -30,7 +30,8 @@ export default function DashboardsLayout({ children }: Props) {
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
       {/* SIDEBAR */}
-      <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
+      <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex overflow-y-auto">
+        {/* LOGO */}
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-slate-950">
             T
@@ -41,17 +42,25 @@ export default function DashboardsLayout({ children }: Props) {
           </div>
         </div>
 
-        <nav className="space-y-1">
+        {/* MAIN NAV */}
+        <nav className="space-y-1 flex-1">
           <NavLink href="/dashboard" label="Dashboard" />
           <NavLink href="/trades" label="Trades" />
           <NavLink href="/analytics" label="Analytics" />
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
+
+          {/* FEEDBACK SECTION */}
+          <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
+            <NavLink href="/feedback" label="Feedback & roadmap" />
+          </div>
         </nav>
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 bg-slate-950/90 p-4 md:p-6">{children}</main>
+      <main className="flex-1 bg-slate-950/90 p-4 md:p-6">
+        {children}
+      </main>
     </div>
   )
 }

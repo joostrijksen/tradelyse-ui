@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import StatCard from '@/components/StatCard'
 
-// Hoe een trade eruit ziet (aangepast aan jouw tabel)
+// Trade shape (aligned with your trades table)
 type Trade = {
   id: number
   pair: string | null
@@ -22,7 +22,7 @@ type Trade = {
   result_r: number | null
 }
 
-// Voor de kalender
+// For the calendar grid
 type CalendarDay = {
   date: Date
   key: string
@@ -31,7 +31,7 @@ type CalendarDay = {
   inMonth: boolean
 }
 
-// Helper: maak een datumkey op basis van **lokale** tijd: YYYY-MM-DD
+// Helper: build a date key based on local time: YYYY-MM-DD
 function formatDateKeyLocal(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -39,7 +39,7 @@ function formatDateKeyLocal(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-// Helper: maak van een key weer een Date (lokale tijd)
+// Helper: parse a key back to a Date (local time)
 function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number)
   return new Date(y, (m ?? 1) - 1, d ?? 1)
@@ -52,16 +52,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Maand die in de kalender wordt getoond (altijd op de 1e dag)
+  // Month shown in the calendar (always first day of month)
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
 
-  // Geselecteerde dag (YYYY-MM-DD) voor widget “Trades geselecteerde dag”
+  // Selected day (YYYY-MM-DD) for the "Trades for selected day" widget
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
 
-  // Trades ophalen
+  // ====== Fetch trades ======
   useEffect(() => {
     const loadTrades = async () => {
       setLoading(true)
@@ -94,7 +94,7 @@ export default function DashboardPage() {
     loadTrades()
   }, [router])
 
-  // ====== Globale statistieken ======
+  // ====== Global statistics ======
   const totalTrades = trades.length
   const totalPnl = trades.reduce((sum, t) => sum + (t.pnl ?? 0), 0)
 
@@ -102,7 +102,9 @@ export default function DashboardPage() {
   const losingTrades = trades.filter(t => (t.pnl ?? 0) < 0).length
   const winRate = totalTrades ? (winningTrades / totalTrades) * 100 : 0
 
-  const tradesWithR = trades.filter(t => t.result_r !== null && t.result_r !== undefined)
+  const tradesWithR = trades.filter(
+    t => t.result_r !== null && t.result_r !== undefined,
+  )
   const avgR =
     tradesWithR.length > 0
       ? tradesWithR.reduce((sum, t) => sum + (t.result_r ?? 0), 0) /
@@ -113,12 +115,15 @@ export default function DashboardPage() {
   const equityValues: number[] = []
   {
     let running = 0
-    const sorted = [...trades].filter(t => t.timestamp).sort((a, b) => {
-      return (
-        new Date(a.timestamp as string).getTime() -
-        new Date(b.timestamp as string).getTime()
-      )
-    })
+    const sorted = [...trades]
+      .filter(t => t.timestamp)
+      .sort((a, b) => {
+        return (
+          new Date(a.timestamp as string).getTime() -
+          new Date(b.timestamp as string).getTime()
+        )
+      })
+
     for (const t of sorted) {
       running += t.pnl ?? 0
       equityValues.push(running)
@@ -134,17 +139,17 @@ export default function DashboardPage() {
           equityValues.length === 1
             ? 0
             : (idx / (equityValues.length - 1)) * 100
-        const y = 20 - (v / maxAbs) * 15 // 20 is middellijn, 15 is amplitude
+        const y = 20 - (v / maxAbs) * 15 // 20 = midline, 15 = amplitude
         const cmd = idx === 0 ? 'M' : 'L'
         return `${cmd} ${x.toFixed(2)} ${y.toFixed(2)}`
       })
       .join(' ')
   }
 
-  // ====== Kalender data (per dag alle trades samenvatten) ======
+  // ====== Calendar data (aggregate per day) ======
   const weekdayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-  // Bouw map: key = 'YYYY-MM-DD' (LOKAAL)
+  // Build map: key = 'YYYY-MM-DD' (LOCAL date)
   const byDate = new Map<string, { pnl: number; count: number }>()
   for (const t of trades) {
     if (!t.timestamp) continue
@@ -157,19 +162,19 @@ export default function DashboardPage() {
     byDate.set(key, current)
   }
 
-  // Bereken de kalender-range voor de huidige maand
+  // Compute calendar range for the current month
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
   const monthStart = new Date(year, month, 1)
-  const monthEnd = new Date(year, month + 1, 0) // laatste dag van de maand
+  const monthEnd = new Date(year, month + 1, 0) // last day of month
 
-  // maandag als start van de week
+  // Monday as week start
   const start = new Date(monthStart)
-  const startWeekDay = (start.getDay() + 6) % 7 // 0 = maandag
+  const startWeekDay = (start.getDay() + 6) % 7 // 0 = Monday
   start.setDate(start.getDate() - startWeekDay)
 
   const daysInMonth = monthEnd.getDate()
-  const totalCells = Math.ceil((startWeekDay + daysInMonth) / 7) * 7 // 4–6 weken
+  const totalCells = Math.ceil((startWeekDay + daysInMonth) / 7) * 7 // 4–6 weeks
 
   const days: CalendarDay[] = []
   for (let i = 0; i < totalCells; i++) {
@@ -192,14 +197,18 @@ export default function DashboardPage() {
   })
 
   const handlePrevMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+    setCurrentMonth(
+      prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
+    )
   }
 
   const handleNextMonth = () => {
-    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+    setCurrentMonth(
+      prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
+    )
   }
 
-  // ====== Trades voor geselecteerde dag (rechts in widget) ======
+  // ====== Trades for selected day (right side widget) ======
   const selectedTrades =
     selectedDateKey === null
       ? []
@@ -211,14 +220,15 @@ export default function DashboardPage() {
             const key = formatDateKeyLocal(d)
             return key === selectedDateKey
           })
+          // newest at the top
           .sort(
             (a, b) =>
-              new Date(a.timestamp as string).getTime() -
-              new Date(b.timestamp as string).getTime(),
+              new Date(b.timestamp as string).getTime() -
+              new Date(a.timestamp as string).getTime(),
           )
 
   const selectedDateLabel = selectedDateKey
-    ? parseDateKey(selectedDateKey).toLocaleDateString('nl-NL', {
+    ? parseDateKey(selectedDateKey).toLocaleDateString('en-GB', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -236,7 +246,7 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* 4 STATCARDS OVER DE VOLLE BREEDTE */}
+      {/* 4 STAT CARDS */}
       <section className="grid gap-4 md:grid-cols-4">
         <StatCard label="Total trades" value={totalTrades.toString()} />
         <StatCard
@@ -256,20 +266,20 @@ export default function DashboardPage() {
         />
       </section>
 
-      {/* EQUITY CURVE OOK VOLLE BREEDTE */}
+      {/* EQUITY CURVE */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium text-slate-200">
-            Equity curve (cumulatieve PnL)
+            Equity curve (cumulative PnL)
           </h2>
           <span className="text-xs text-slate-500">
-            Op basis van volgorde van je trades
+            Based on the chronological order of your trades.
           </span>
         </div>
 
         {loading ? (
           <div className="flex h-40 items-center justify-center text-sm text-slate-500">
-            Laden…
+            Loading…
           </div>
         ) : equityValues.length === 0 ? (
           <div className="flex h-40 items-center justify-center text-sm text-slate-500">
@@ -303,7 +313,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* RIJ: LINKS KALENDER, RECHTS EVALUATION + TRADES VAN DAG */}
+      {/* ROW: LEFT CALENDAR, RIGHT EVALUATION + TRADES FOR DAY */}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {/* PROFIT CALENDAR */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
@@ -333,13 +343,14 @@ export default function DashboardPage() {
             </div>
 
             <span className="text-xs text-slate-500">
-              Left: date (DD/MM) · Center: PnL · Bottom: trade count · Click to view trades for that day
+              Top: date (DD/MM) · Center: PnL · Bottom: trade count · Click a
+              day to view its trades.
             </span>
           </div>
 
           {loading ? (
             <div className="flex h-40 items-center justify-center text-sm text-slate-500">
-              Laden…
+              Loading…
             </div>
           ) : (
             <div className="space-y-2 text-[11px]">
@@ -355,10 +366,10 @@ export default function DashboardPage() {
                 ))}
               </div>
 
-              {/* De blokjes */}
+              {/* Calendar cells */}
               <div className="grid grid-cols-7 gap-1">
                 {days.map((day, index) => {
-                  const dateLabel = day.date.toLocaleDateString('nl-NL', {
+                  const dateLabel = day.date.toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: '2-digit',
                   })
@@ -389,12 +400,12 @@ export default function DashboardPage() {
                           : 'cursor-default'
                       } ${bg} ${ring}`}
                     >
-                      {/* Datum linksboven */}
+                      {/* Date (top-left) */}
                       <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
                         <span>{dateLabel}</span>
                       </div>
 
-                      {/* Midden: PnL groot + daaronder aantal trades */}
+                      {/* Center: PnL + trade count */}
                       <div className="flex flex-1 flex-col items-center justify-center text-center">
                         <div className="text-sm font-semibold text-slate-100">
                           {hasTrades ? day.pnl.toFixed(1) : ''}
@@ -413,7 +424,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* RECHTERKANT: evaluation + trades-dag */}
+        {/* RIGHT: evaluation + trades of selected day */}
         <aside className="flex flex-col gap-4">
           {/* Evaluation */}
           <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-sm">
@@ -436,7 +447,7 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Trades geselecteerde dag */}
+          {/* Trades of selected day */}
           <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 text-sm">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -452,14 +463,14 @@ export default function DashboardPage() {
             ) : (
               <div className="max-h-64 space-y-1 overflow-y-auto text-xs">
                 <div className="grid grid-cols-[60px,1fr,70px,50px] gap-1 border-b border-slate-800 pb-1 text-[10px] uppercase text-slate-500">
-                  <span>Tijd</span>
+                  <span>Time</span>
                   <span>Pair</span>
                   <span>PnL</span>
                   <span>R</span>
                 </div>
                 {selectedTrades.map(trade => {
                   const timeLabel = trade.timestamp
-                    ? new Date(trade.timestamp).toLocaleTimeString('nl-NL', {
+                    ? new Date(trade.timestamp).toLocaleTimeString('en-GB', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })
@@ -503,14 +514,14 @@ export default function DashboardPage() {
 
       {error && (
         <p className="text-xs text-red-400">
-          Fout bij ophalen van trades: {error}
+          Error while fetching trades: {error}
         </p>
       )}
     </div>
   )
 }
 
-// Kleine helper voor rijen in Evaluation
+// Small helper for rows in the Evaluation section
 function Row(props: {
   label: string
   value: string

@@ -62,6 +62,7 @@ export default function ApiKeysPage() {
   const [justCreatedKey, setJustCreatedKey] = useState<string | null>(null)
   const [copyingId, setCopyingId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [copyingUserId, setCopyingUserId] = useState(false)
 
   // ----- load keys on mount -----
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function ApiKeysPage() {
     }
   }
 
-  // ----- copy key -----
+  // ----- copy API key -----
   const handleCopy = async (key: string, id: string) => {
     try {
       setCopyingId(id)
@@ -204,6 +205,27 @@ export default function ApiKeysPage() {
     }
   }
 
+  // ----- copy User ID -----
+  const handleCopyUserId = async () => {
+    if (!userId) return
+    try {
+      setCopyingUserId(true)
+      await navigator.clipboard.writeText(userId)
+      setStatus({
+        type: 'success',
+        text: 'User ID copied to your clipboard.',
+      })
+    } catch (e) {
+      console.error(e)
+      setStatus({
+        type: 'error',
+        text: 'Could not copy the User ID.',
+      })
+    } finally {
+      setCopyingUserId(false)
+    }
+  }
+
   const totalKeys = apiKeys.length
 
   return (
@@ -213,7 +235,7 @@ export default function ApiKeysPage() {
           API keys & integrations
         </h1>
         <p className="mt-1 text-sm text-slate-400">
-          Manage your API keys for n8n and your trading platforms here. These keys provide access to
+          Manage your API keys for your trading platforms here. These keys provide access to
           your journal data, treat them as securely as a password.
         </p>
       </header>
@@ -237,16 +259,27 @@ export default function ApiKeysPage() {
           Your Tradelyse credentials
         </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Use these credentials in all your bots/EAs (cTrader, MT4, MT5) and in automations
-          like n8n. Each bot uses the same combination of User ID and API key.
+          Use these credentials in all your bots/EAs (cTrader, MT4, MT5). Each bot uses the
+          same combination of User ID and API key.
         </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {/* User ID + copy button */}
           <div className="space-y-1 text-sm">
             <p className="text-slate-500">User ID</p>
-            <code className="block break-all rounded-xl bg-black/40 px-3 py-2 text-[11px] text-slate-100">
-              {userId ?? '—'}
-            </code>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <code className="flex-1 break-all rounded-xl bg-black/40 px-3 py-2 text-[11px] text-slate-100">
+                {userId ?? '—'}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyUserId}
+                disabled={!userId || copyingUserId}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] text-slate-100 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {copyingUserId ? 'Copying…' : 'Copy User ID'}
+              </button>
+            </div>
             <p className="mt-1 text-[11px] text-slate-500">
               Enter this ID when starting the Tradelyse bot/EA in your trading platform.
             </p>
@@ -257,7 +290,7 @@ export default function ApiKeysPage() {
             <p className="text-[11px] text-slate-400">
               You can create multiple keys for different environments, for example{' '}
               <span className="font-semibold text-slate-200">&quot;cTrader live&quot;</span>{' '}
-              or <span className="font-semibold text-slate-200">&quot;n8n dev&quot;</span>.
+              or <span className="font-semibold text-slate-200">&quot;Trading Strategy&quot;</span>.
             </p>
           </div>
         </div>
@@ -272,7 +305,7 @@ export default function ApiKeysPage() {
             </h2>
             <p className="text-xs text-slate-500">
               Give your key a recognizable name e.g.{' '}
-              <span className="font-semibold text-slate-300">&quot;n8n live&quot;</span> or{' '}
+              <span className="font-semibold text-slate-300">&quot;mt5 live&quot;</span> or{' '}
               <span className="font-semibold text-slate-300">&quot;cTrader demo&quot;</span>.
             </p>
           </div>
@@ -417,7 +450,7 @@ export default function ApiKeysPage() {
                 Connect your cTrader account with the Tradelyse cBot. Trades are automatically
                 sent to your journal.
               </p>
-              <ol className="mt-2 list-decimal list-inside text-[11px] text-slate-400 space-y-1">
+              <ol className="mt-2 list-decimal list-inside space-y-1 text-[11px] text-slate-400">
                 <li>Download the cBot below.</li>
                 <li>Import the .algo file in cTrader and start the bot.</li>
                 <li>Enter your User ID and API key.</li>
@@ -441,9 +474,7 @@ export default function ApiKeysPage() {
                 EA for MT4 will be available soon. Here too, you&apos;ll use your User ID and API key.
               </p>
             </div>
-            <div className="mt-4 text-[11px] text-amber-400">
-              Coming soon
-            </div>
+            <div className="mt-4 text-[11px] text-amber-400">Coming soon</div>
           </div>
 
           {/* MT5 */}
@@ -455,9 +486,7 @@ export default function ApiKeysPage() {
                 platforms.
               </p>
             </div>
-            <div className="mt-4 text-[11px] text-amber-400">
-              Coming soon
-            </div>
+            <div className="mt-4 text-[11px] text-amber-400">Coming soon</div>
           </div>
         </div>
       </section>
