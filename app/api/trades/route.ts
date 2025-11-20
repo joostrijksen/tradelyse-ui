@@ -1,120 +1,190 @@
 // app/api/trades/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { authenticateApiKey } from '@/lib/authApiKey'
+import { createClient } from '@supabase/supabase-js'
 
-// Type van een trade payload zoals n8n 'm stuurt
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+
+// ---- Types ----
 type IncomingTrade = {
-  timestamp?: string
-  pair: string
-  direction: 'long' | 'short'
-  entry: number
-  sl: number | null
-  tp: number | null
-  size: number | null
-  trade_type: string | null // bijv. 'scalp', 'swing', 'auto'
-  pnl: number | null
-  pnl_percentage: number | null
-  result_r: number | null
-  notes: string | null
+  pair?: string
+  direction?: 'long' | 'short'
+  entry?: number
+  exit_price?: number | null
+  sl?: number | null
+  tp?: number | null
+  size?: number | null
+  trade_type?: string | null
+
+  // extended fields
+  pnl?: number | null
+  pnl_percentage?: number | null
+  result_r?: number | null
+  notes?: string | null
+
+  platform?: string | null
+  strategy?: string | null
+  account_id?: string | null
+  ticket?: string | null
+  status?: 'opened' | 'closed' | string | null
+
+  open_time?: string | null
+  close_time?: string | null
+
+  pnl_currency?: string | null
+  commission?: number | null
+  swap?: number | null
 }
 
-/**
- * POST /api/trades
- * Slaat een trade op voor de gebruiker die bij de API key hoort.
- */
-export async function POST(req: NextRequest) {
-  // 1. API key controleren
-  const ctx = await authenticateApiKey(req)
-
-  if (!ctx) {
-    return NextResponse.json(
-      { error: 'Invalid or missing API key' },
-      { status: 401 }
-    )
-  }
-
-  // 2. Body parsen
-  let body: IncomingTrade
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid JSON body' },
-      { status: 400 }
-    )
-  }
-
-  if (!body.pair || !body.direction || !body.entry) {
-    return NextResponse.json(
-      { error: 'pair, direction en entry zijn verplicht' },
-      { status: 400 }
-    )
-  }
-
-  const timestamp =
-    body.timestamp ?? new Date().toISOString()
-
-  // 3. Trade wegschrijven
-  const { error } = await supabaseAdmin.from('trades').insert({
-    user_id: ctx.userId,
-    timestamp,
-    pair: body.pair,
-    direction: body.direction,
-    entry: body.entry,
-    sl: body.sl,
-    tp: body.tp,
-    size: body.size,
-    trade_type: body.trade_type,
-    pnl: body.pnl,
-    pnl_percentage: body.pnl_percentage,
-    result_r: body.result_r,
-    notes: body.notes,
-  })
-
-  if (error) {
-    console.error('Error inserting trade', error)
-    return NextResponse.json(
-      { error: 'Could not store trade' },
-      { status: 500 }
-    )
-  }
-
-  return NextResponse.json({ ok: true })
-}
-
-/**
- * GET /api/trades?limit=50
- * Haalt trades op voor de gebruiker van de API key.
- * Handig om te testen vanuit n8n of Hoppscotch.
- */
-export async function GET(req: NextRequest) {
-  const ctx = await authenticateApiKey(req)
-
-  if (!ctx) {
-    return NextResponse.json(
-      { error: 'Invalid or missing API key' },
-      { status: 401 }
-    )
-  }
-
-  const limitParam = req.nextUrl.searchParams.get('limit')
-  const limit = limitParam ? Math.min(Number(limitParam) || 50, 200) : 50
-
+// ---- helpers ----
+async function getUserIdFromApiKey(apiKey: string) {
   const { data, error } = await supabaseAdmin
-    .from('trades')
-    .select('*')
-    .eq('user_id', ctx.userId)
-    .order('timestamp', { ascending: false })
-    .limit(limit)
+    .from('api_keys')
+    .select('user_id, revoked_at')
+    .eq('key', apiKey)
+    .maybeSingle()
 
-  if (error) {
-    console.error('Error fetching trades', error)
+  if (error || !data) return null
+  if (data.revoked_at) return null
+
+  return data.user_id as string
+}
+
+function cleanNumber(v: unknown): number | null {
+  if (v === null || v === undefined) return null
+  if (typeof v === 'number') return Number.isNaN(v) ? null : v
+  if (typeof v === 'string') {
+    const n = Number(v)
+    return Number.isNaN(n) ? null : n
+  }
+  return null
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Missing API key' },
+        { status: 401 },
+      )
+    }
+
+    const userId = await getUserIdFromApiKey(apiKey.trim())
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Invalid or revoked API key' },
+        { status: 401 },
+      )
+    }
+
+    const body = (await req.json()) as IncomingTrade
+
+    const nowIso = new Date().toISOString()
+    const status = (body.status || 'closed') as IncomingTrade['status']
+    const platform = body.platform || 'ctrader'
+    const ticket = body.ticket || null
+
+    // Common fields for insert / update
+    const baseData = {
+      pair: body.pair ?? null,
+      direction: body.direction ?? null,
+      entry: cleanNumber(body.entry),
+      sl: cleanNumber(body.sl),
+      tp: cleanNumber(body.tp),
+      size: cleanNumber(body.size),
+      trade_type: body.trade_type ?? null,
+      notes: body.notes ?? null,
+      platform,
+      strategy: body.strategy ?? null,
+      account_id: body.account_id ?? null,
+      ticket,
+      status: status ?? null,
+      open_time: body.open_time ?? null,
+      close_time: body.close_time ?? null,
+      exit_price: cleanNumber(body.exit_price),
+      pnl: cleanNumber(body.pnl),
+      pnl_percentage: cleanNumber(body.pnl_percentage),
+      result_r: cleanNumber(body.result_r),
+      pnl_currency: body.pnl_currency ?? null,
+      commission: cleanNumber(body.commission),
+      swap: cleanNumber(body.swap),
+    }
+
+    // Use open_time as timestamp if present, otherwise close_time, otherwise now
+    const timestamp =
+      body.open_time ??
+      body.close_time ??
+      nowIso
+
+    // ---- Logic: opened vs closed ----
+
+    if (status === 'closed' && ticket) {
+      // Try to find existing trade for this user + ticket + platform
+      const { data: existing, error: findError } = await supabaseAdmin
+        .from('trades')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('ticket', ticket)
+        .eq('platform', platform)
+        .order('timestamp', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (findError) {
+        console.error('find existing trade error', findError)
+      }
+
+      if (existing) {
+        // Update existing row with closing info
+        const { error: updateError } = await supabaseAdmin
+          .from('trades')
+          .update({
+            ...baseData,
+            timestamp,
+          })
+          .eq('id', existing.id)
+
+        if (updateError) {
+          console.error('update trade error', updateError)
+          return NextResponse.json(
+            { error: 'Failed to update trade' },
+            { status: 500 },
+          )
+        }
+
+        return NextResponse.json({ ok: true, mode: 'updated' })
+      }
+
+      // No existing row found: fall through to insert a full closed trade
+    }
+
+    // For first-time "opened" events OR closed-without-existing → insert new row
+    const { error: insertError } = await supabaseAdmin
+      .from('trades')
+      .insert({
+        user_id: userId,
+        timestamp,
+        ...baseData,
+      })
+
+    if (insertError) {
+      console.error('insert trade error', insertError)
+      return NextResponse.json(
+        { error: 'Failed to insert trade' },
+        { status: 500 },
+      )
+    }
+
+    return NextResponse.json({ ok: true, mode: 'inserted' })
+  } catch (err) {
+    console.error('trades endpoint error', err)
     return NextResponse.json(
-      { error: 'Could not fetch trades' },
-      { status: 500 }
+      { error: 'Unexpected server error' },
+      { status: 500 },
     )
   }
-
-  return NextResponse.json({ trades: data })
 }

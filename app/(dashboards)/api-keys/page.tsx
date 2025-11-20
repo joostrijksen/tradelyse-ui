@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
 
 type ApiKey = {
   id: string
@@ -19,11 +20,11 @@ type StatusMessage = {
   text: string
 } | null
 
-// Helper: mooi datum-format
+// Helper: nice date format
 function formatDate(value: string | null) {
   if (!value) return '—'
   const d = new Date(value)
-  return d.toLocaleString('nl-NL', {
+  return d.toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -32,7 +33,7 @@ function formatDate(value: string | null) {
   })
 }
 
-// Helper: mask key voor weergave
+// Helper: mask key for display
 function maskKey(key: string) {
   if (key.length <= 8) return key
   const start = key.slice(0, 4)
@@ -60,6 +61,7 @@ export default function ApiKeysPage() {
   const [status, setStatus] = useState<StatusMessage>(null)
   const [justCreatedKey, setJustCreatedKey] = useState<string | null>(null)
   const [copyingId, setCopyingId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   // ----- load keys on mount -----
   useEffect(() => {
@@ -72,6 +74,8 @@ export default function ApiKeysPage() {
         return
       }
 
+      setUserId(user.id)
+
       const { data, error } = await supabase
         .from('api_keys')
         .select('*')
@@ -82,7 +86,7 @@ export default function ApiKeysPage() {
         console.error(error)
         setStatus({
           type: 'error',
-          text: 'Kon API keys niet ophalen. Probeer het later opnieuw.',
+          text: 'Could not fetch API keys. Please try again later.',
         })
       } else {
         setApiKeys((data ?? []) as ApiKey[])
@@ -99,7 +103,7 @@ export default function ApiKeysPage() {
     if (!newKeyName.trim()) {
       setStatus({
         type: 'error',
-        text: 'Geef eerst een naam aan je API key.',
+        text: 'Please give your API key a name first.',
       })
       return
     }
@@ -131,12 +135,12 @@ export default function ApiKeysPage() {
         console.error(error)
         setStatus({
           type: 'error',
-          text: 'Er ging iets mis bij het aanmaken van de API key.',
+          text: 'Something went wrong creating the API key.',
         })
         return
       }
 
-      // Voeg bovenaan toe
+      // Add to the top
       setApiKeys(prev => [data as ApiKey, ...prev])
       setNewKeyName('')
       setJustCreatedKey(fullKey)
@@ -163,7 +167,7 @@ export default function ApiKeysPage() {
         console.error(error)
         setStatus({
           type: 'error',
-          text: 'Kon de key niet intrekken.',
+          text: 'Could not revoke the key.',
         })
         return
       }
@@ -173,7 +177,7 @@ export default function ApiKeysPage() {
       )
       setStatus({
         type: 'success',
-        text: 'API key is ingetrokken.',
+        text: 'API key has been revoked.',
       })
     } finally {
       setRevokingId(null)
@@ -200,14 +204,17 @@ export default function ApiKeysPage() {
     }
   }
 
+  const totalKeys = apiKeys.length
+
   return (
     <div className="flex flex-1 flex-col gap-6">
       <header className="mb-2">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-50">
-          API keys
+          API keys & integrations
         </h1>
         <p className="mt-1 text-sm text-slate-400">
-          Manage your API keys for n8n and other integrations here. These keys grant access to your journal data, so treat them as securely as you would a password.
+          Manage your API keys for n8n and your trading platforms here. These keys provide access to
+          your journal data, treat them as securely as a password.
         </p>
       </header>
 
@@ -224,7 +231,39 @@ export default function ApiKeysPage() {
         </div>
       )}
 
-      {/* Nieuwe key aanmaken */}
+      {/* Credentials: User ID + explanation */}
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <h2 className="text-sm font-medium text-slate-200">
+          Your Tradelyse credentials
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Use these credentials in all your bots/EAs (cTrader, MT4, MT5) and in automations
+          like n8n. Each bot uses the same combination of User ID and API key.
+        </p>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="space-y-1 text-sm">
+            <p className="text-slate-500">User ID</p>
+            <code className="block break-all rounded-xl bg-black/40 px-3 py-2 text-[11px] text-slate-100">
+              {userId ?? '—'}
+            </code>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Enter this ID when starting the Tradelyse bot/EA in your trading platform.
+            </p>
+          </div>
+
+          <div className="space-y-1 text-sm">
+            <p className="text-slate-500">API keys</p>
+            <p className="text-[11px] text-slate-400">
+              You can create multiple keys for different environments, for example{' '}
+              <span className="font-semibold text-slate-200">&quot;cTrader live&quot;</span>{' '}
+              or <span className="font-semibold text-slate-200">&quot;n8n dev&quot;</span>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Create new key */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
@@ -233,8 +272,8 @@ export default function ApiKeysPage() {
             </h2>
             <p className="text-xs text-slate-500">
               Give your key a recognizable name e.g.{' '}
-              <span className="font-semibold text-slate-300">&quot;n8n live&quot;</span> of{' '}
-              <span className="font-semibold text-slate-300">&quot;development&quot;</span>.
+              <span className="font-semibold text-slate-300">&quot;n8n live&quot;</span> or{' '}
+              <span className="font-semibold text-slate-300">&quot;cTrader demo&quot;</span>.
             </p>
           </div>
         </div>
@@ -252,14 +291,14 @@ export default function ApiKeysPage() {
             disabled={creating}
             className="mt-1 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 shadow-sm hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60 md:mt-0"
           >
-            {creating ? 'Bezig…' : 'Make API key'}
+            {creating ? 'Creating…' : 'Create API key'}
           </button>
         </div>
 
         {justCreatedKey && (
           <div className="mt-4 rounded-xl border border-emerald-700/70 bg-emerald-900/30 px-3 py-3 text-xs text-emerald-100">
             <div className="mb-1 font-medium">
-              New key created — copy it now, as you won’t be able to see it in full again.
+              New key created — copy it now, as you won&apos;t be able to see it in full again.
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <code className="break-all rounded bg-black/40 px-2 py-1 text-[11px]">
@@ -276,19 +315,18 @@ export default function ApiKeysPage() {
         )}
       </section>
 
-      {/* Overzicht bestaande keys */}
+      {/* Overview of existing keys */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-slate-200">Your API keys</h2>
           <span className="text-xs text-slate-500">
-            Totaal: {apiKeys.length}{' '}
-            {apiKeys.length === 1 ? 'key' : 'keys'}
+            Total: {totalKeys} {totalKeys === 1 ? 'key' : 'keys'}
           </span>
         </div>
 
         {loading ? (
           <div className="flex h-24 items-center justify-center text-sm text-slate-500">
-            Laden…
+            Loading…
           </div>
         ) : apiKeys.length === 0 ? (
           <div className="flex h-24 items-center justify-center text-sm text-slate-500">
@@ -330,7 +368,7 @@ export default function ApiKeysPage() {
                               : 'bg-emerald-500/10 text-emerald-300'
                           }`}
                         >
-                          {isRevoked ? 'Ingetrokken' : 'Actief'}
+                          {isRevoked ? 'Revoked' : 'Active'}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-right">
@@ -340,14 +378,14 @@ export default function ApiKeysPage() {
                             disabled={copyingId === key.id}
                             className="rounded-lg border border-slate-700 px-2 py-1 text-[11px] text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {copyingId === key.id ? 'Copy…' : 'Copy key'}
+                            {copyingId === key.id ? 'Copying…' : 'Copy key'}
                           </button>
                           <button
                             onClick={() => handleRevoke(key.id)}
                             disabled={isRevoked || revokingId === key.id}
                             className="rounded-lg border border-red-700/80 px-2 py-1 text-[11px] text-red-200 hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {revokingId === key.id ? 'Revoke…' : 'Revoke'}
+                            {revokingId === key.id ? 'Revoking…' : 'Revoke'}
                           </button>
                         </div>
                       </td>
@@ -360,15 +398,80 @@ export default function ApiKeysPage() {
         )}
       </section>
 
-      {/* (optioneel) klein doc-blokje */}
+      {/* Brokers & platforms */}
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+        <div className="mb-3">
+          <h2 className="text-sm font-medium text-slate-200">Brokers & platforms</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Connect your trading platforms with Tradelyse. Use your User ID and an active API key
+            in each bot/EA.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* cTrader */}
+          <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-100">cTrader</h3>
+              <p className="text-xs text-slate-400">
+                Connect your cTrader account with the Tradelyse cBot. Trades are automatically
+                sent to your journal.
+              </p>
+              <ol className="mt-2 list-decimal list-inside text-[11px] text-slate-400 space-y-1">
+                <li>Download the cBot below.</li>
+                <li>Import the .algo file in cTrader and start the bot.</li>
+                <li>Enter your User ID and API key.</li>
+              </ol>
+            </div>
+            <div className="mt-4">
+              <Link
+                href="/downloads/TradelyseSyncBot.algo"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-950 hover:bg-slate-200"
+              >
+                Download cTrader bot
+              </Link>
+            </div>
+          </div>
+
+          {/* MT4 */}
+          <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/40 p-4 opacity-60">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-100">MetaTrader 4</h3>
+              <p className="text-xs text-slate-400">
+                EA for MT4 will be available soon. Here too, you&apos;ll use your User ID and API key.
+              </p>
+            </div>
+            <div className="mt-4 text-[11px] text-amber-400">
+              Coming soon
+            </div>
+          </div>
+
+          {/* MT5 */}
+          <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/40 p-4 opacity-60">
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-100">MetaTrader 5</h3>
+              <p className="text-xs text-slate-400">
+                EA for MT5 will be available soon. Use the same credentials for all
+                platforms.
+              </p>
+            </div>
+            <div className="mt-4 text-[11px] text-amber-400">
+              Coming soon
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* n8n / header example */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-[11px] text-slate-400">
-        <div className="font-medium text-slate-200">How to use your API key?</div>
+        <div className="font-medium text-slate-200">How to use your API key in HTTP tools?</div>
         <p className="mt-1">
-          Use your key in the <span className="font-mono">Authorization</span>-header of your HTTP requests, for example in n8n.
+          Use your key in the <span className="font-mono">Authorization</span> or{' '}
+          <span className="font-mono">x-api-key</span> header of your HTTP requests, for example in n8n.
         </p>
         <pre className="mt-2 overflow-x-auto rounded-lg bg-black/40 p-3 font-mono text-[10px] text-slate-200">
-{`GET https://jouw-api-endpoint.example.com/trades
-Authorization: Bearer YOUR_API_KEY_HERE`}
+{`POST https://tradelyse.com/api/trades
+x-api-key: YOUR_API_KEY_HERE`}
         </pre>
       </section>
     </div>

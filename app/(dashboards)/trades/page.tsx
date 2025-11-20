@@ -9,14 +9,30 @@ type Trade = {
   id: number
   user_id: string | null
   timestamp: string | null
+
   pair: string | null
   direction: string | null
   entry: number | null
+  exit_price: number | null
   sl: number | null
   tp: number | null
   size: number | null
+
   trade_type: string | null
+  platform: string | null
+  strategy: string | null
+  account_id: string | null
+  ticket: string | null
+  status: string | null
+
+  open_time: string | null
+  close_time: string | null
+
   pnl: number | null
+  pnl_currency: string | null
+  commission: number | null
+  swap: number | null
+
   pnl_percentage: number | null
   result_r: number | null
   notes: string | null
@@ -53,7 +69,7 @@ const initialForm: NewTradeForm = {
 function formatDateTime(value: string | null) {
   if (!value) return '—'
   const d = new Date(value)
-  return d.toLocaleString('nl-NL', {
+  return d.toLocaleString('en-GB', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -74,7 +90,7 @@ export default function TradesPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
 
-  // ====== Data ophalen ======
+  // ====== Load trades ======
   useEffect(() => {
     const load = async () => {
       setLoading(true)
@@ -98,7 +114,7 @@ export default function TradesPage() {
       if (error) {
         console.error(error)
       } else {
-        setTrades(data ?? [])
+        setTrades((data ?? []) as Trade[])
       }
 
       setLoading(false)
@@ -114,10 +130,7 @@ export default function TradesPage() {
   const lastTradeDate = lastTrade?.timestamp ?? null
 
   // ====== Form helpers ======
-  const handleChange = (
-    field: keyof NewTradeForm,
-    value: string,
-  ) => {
+  const handleChange = (field: keyof NewTradeForm, value: string) => {
     setForm(prev => ({
       ...prev,
       [field]: value,
@@ -152,11 +165,11 @@ export default function TradesPage() {
     } = form
 
     if (!pair.trim()) {
-      setFormError('Vul een pair in.')
+      setFormError('Please enter a pair.')
       return
     }
     if (!entry.trim() || !sl.trim() || !tp.trim()) {
-      setFormError('Entry, SL en TP zijn verplicht.')
+      setFormError('Entry, SL and TP are required.')
       return
     }
 
@@ -169,7 +182,7 @@ export default function TradesPage() {
     const rNum = parseNumber(result_r)
 
     if (entryNum === null || slNum === null || tpNum === null) {
-      setFormError('Controleer of Entry, SL en TP geldige nummers zijn.')
+      setFormError('Please check if Entry, SL and TP are valid numbers.')
       return
     }
 
@@ -208,9 +221,9 @@ export default function TradesPage() {
       console.error(error)
       setFormError('Save failed. Please try again.')
     } else if (data) {
-      setTrades(prev => [data, ...prev])
+      setTrades(prev => [data as Trade, ...prev])
       setForm(initialForm)
-      setFormSuccess('Save trade.')
+      setFormSuccess('Trade saved.')
     }
 
     setSaving(false)
@@ -234,13 +247,13 @@ export default function TradesPage() {
           positive={totalPnl >= 0}
         />
         <StatCard
-          label="Laatste trade"
+          label="Last trade"
           value={lastTradeDate ? formatDateTime(lastTradeDate) : '—'}
           sub={lastTrade?.pair ?? undefined}
         />
       </section>
 
-      {/* Nieuwe trade toevoegen */}
+      {/* Add new trade */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
@@ -248,11 +261,10 @@ export default function TradesPage() {
               Add new trade
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Manually added trades are treated the same as n8n-synced trades in your dashboards.Handmatig ingevoerde trades worden net als de n8n-trades gebruikt in je
-              dashboards.
+              Manually added trades are treated the same as automated trades in your dashboards.
             </p>
           </div>
-          <p className="text-xs text-slate-500 text-right hidden sm:block">
+          <p className="hidden text-right text-xs text-slate-500 sm:block">
             Saved to your personal journal based on your account.
           </p>
         </div>
@@ -361,7 +373,7 @@ export default function TradesPage() {
               </label>
               <input
                 className="h-9 w-full rounded-lg border border-slate-800 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                placeholder="e.g.. 1.2"
+                placeholder="e.g. 1.2"
                 value={form.pnl_percentage}
                 onChange={e => handleChange('pnl_percentage', e.target.value)}
               />
@@ -402,19 +414,19 @@ export default function TradesPage() {
             disabled={saving}
             className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? 'Save…' : 'Save trade'}
+            {saving ? 'Saving…' : 'Save trade'}
           </button>
         </form>
       </section>
 
-      {/* Alle trades */}
+      {/* All trades */}
       <section className="rounded-2xl border border-slate-800 bg-slate-900/70">
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
           <div>
             <h2 className="text-sm font-medium text-slate-200">All trades</h2>
             <p className="mt-1 text-xs text-slate-500">
               {totalTrades === 0
-                ? 'NNo trades in your journal yet.'
+                ? 'No trades in your journal yet.'
                 : `${totalTrades} trades in your journal.`}
             </p>
           </div>
@@ -422,28 +434,38 @@ export default function TradesPage() {
 
         {loading ? (
           <div className="flex h-32 items-center justify-center text-sm text-slate-500">
-            Laden…
+            Loading…
           </div>
         ) : totalTrades === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-slate-500">
-            Voeg hierboven je eerste trade toe.
+            Add your first trade above.
           </div>
         ) : (
-          <div className="max-h-[480px] overflow-auto">
+          <div className="max-h-[520px] overflow-auto">
             <table className="min-w-full text-left text-xs">
               <thead className="sticky top-0 bg-slate-900">
                 <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wide text-slate-500">
-                  <th className="px-6 py-3">Datum</th>
+                  <th className="px-6 py-3">Date</th>
                   <th className="px-3 py-3">Pair</th>
-                  <th className="px-3 py-3">Dir</th>
+                  <th className="px-3 py-3">Side</th>
                   <th className="px-3 py-3">Entry</th>
+                  <th className="px-3 py-3">Exit</th>
                   <th className="px-3 py-3">SL</th>
                   <th className="px-3 py-3">TP</th>
                   <th className="px-3 py-3">Size</th>
+                  <th className="px-3 py-3">Platform</th>
                   <th className="px-3 py-3">Type</th>
+                  <th className="px-3 py-3">Strategy</th>
+                  <th className="px-3 py-3">Account</th>
+                  <th className="px-3 py-3">Ticket</th>
+                  <th className="px-3 py-3">Open time</th>
+                  <th className="px-3 py-3">Close time</th>
                   <th className="px-3 py-3">PnL</th>
                   <th className="px-3 py-3">PnL %</th>
                   <th className="px-3 py-3">R</th>
+                  <th className="px-3 py-3">Currency</th>
+                  <th className="px-3 py-3">Commission</th>
+                  <th className="px-3 py-3">Swap</th>
                   <th className="px-6 py-3">Notes</th>
                 </tr>
               </thead>
@@ -479,6 +501,11 @@ export default function TradesPage() {
                         {trade.entry !== null ? trade.entry.toFixed(4) : '—'}
                       </td>
                       <td className="px-3 py-2">
+                        {trade.exit_price !== null
+                          ? trade.exit_price.toFixed(4)
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2">
                         {trade.sl !== null ? trade.sl.toFixed(4) : '—'}
                       </td>
                       <td className="px-3 py-2">
@@ -488,14 +515,32 @@ export default function TradesPage() {
                         {trade.size !== null ? trade.size.toFixed(2) : '—'}
                       </td>
                       <td className="px-3 py-2">
+                        {trade.platform ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
                         {trade.trade_type ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {trade.strategy ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {trade.account_id ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {trade.ticket ?? '—'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {trade.open_time ? formatDateTime(trade.open_time) : '—'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        {trade.close_time ? formatDateTime(trade.close_time) : '—'}
                       </td>
                       <td className={`px-3 py-2 ${pnlColor}`}>
                         {trade.pnl !== null ? trade.pnl.toFixed(2) : '—'}
                       </td>
                       <td className="px-3 py-2">
                         {trade.pnl_percentage !== null
-                          ? `${trade.pnl_percentage.toFixed(2)}`
+                          ? trade.pnl_percentage.toFixed(2)
                           : '—'}
                       </td>
                       <td className="px-3 py-2">
@@ -503,7 +548,20 @@ export default function TradesPage() {
                           ? trade.result_r.toFixed(2)
                           : '—'}
                       </td>
-                      <td className="px-6 py-2 max-w-xs truncate">
+                      <td className="px-3 py-2">
+                        {trade.pnl_currency ?? '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {trade.commission !== null
+                          ? trade.commission.toFixed(2)
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {trade.swap !== null
+                          ? trade.swap.toFixed(2)
+                          : '—'}
+                      </td>
+                      <td className="max-w-xs truncate px-6 py-2">
                         {trade.notes ?? '—'}
                       </td>
                     </tr>
