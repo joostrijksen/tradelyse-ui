@@ -29,8 +29,8 @@ function NavLink({ href, label }: { href: string; label: string }) {
 export default function DashboardsLayout({ children }: Props) {
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
-      {/* SIDEBAR – fixed width */}
-      <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
+      {/* SIDEBAR */}
+      <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
         {/* LOGO */}
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-slate-950">
@@ -55,12 +55,50 @@ export default function DashboardsLayout({ children }: Props) {
             <NavLink href="/feedback" label="Feedback & roadmap" />
           </div>
         </nav>
+
+        {/* FOOTER LINKS IN SIDEBAR */}
+        <div className="mt-4 border-t border-slate-800 pt-3 text-[11px] text-slate-500">
+          <Link href="/privacy" className="block hover:text-slate-300">
+            Privacy Policy
+          </Link>
+          <Link
+            href="/terms"
+            className="mt-1 block hover:text-slate-300"
+          >
+            Terms of Use
+          </Link>
+          <a
+            href="mailto:info@tradelyse.com"
+            className="mt-1 block hover:text-slate-300"
+          >
+            info@tradelyse.com
+          </a>
+        </div>
       </aside>
 
-      {/* MAIN CONTENT – centered, max width */}
-      <main className="flex-1 bg-slate-950/90">
-        <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
+      {/* MAIN CONTENT */}
+      <main className="flex-1 bg-slate-950/90 p-4 md:p-6">
+        {/* max-w: voorkomt dat Trades / Dashboard te breed worden op grote schermen */}
+        <div className="mx-auto w-full max-w-6xl">
           {children}
+
+          {/* PAGE FOOTER */}
+          <footer className="mt-10 pb-4 text-center text-[11px] text-slate-600">
+            <Link href="/privacy" className="hover:text-slate-300">
+              Privacy Policy
+            </Link>
+            {' • '}
+            <Link href="/terms" className="hover:text-slate-300">
+              Terms of Use
+            </Link>
+            {' • '}
+            <a
+              href="mailto:info@tradelyse.com"
+              className="hover:text-slate-300"
+            >
+              info@tradelyse.com
+            </a>
+          </footer>
         </div>
       </main>
     </div>
