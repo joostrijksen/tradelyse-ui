@@ -29,8 +29,8 @@ function NavLink({ href, label }: { href: string; label: string }) {
 export default function DashboardsLayout({ children }: Props) {
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
-      {/* SIDEBAR */}
-      <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex overflow-y-auto">
+      {/* SIDEBAR – fixed width */}
+      <aside className="hidden w-64 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
         {/* LOGO */}
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-slate-950">
@@ -49,19 +49,17 @@ export default function DashboardsLayout({ children }: Props) {
           <NavLink href="/analytics" label="Analytics" />
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
-        </nav>
 
-        {/* FOOTER / FEEDBACK */}
-        <nav className="mt-4 border-t border-slate-800 pt-4">
-          <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-2">
+          {/* FEEDBACK SECTION */}
+          <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
             <NavLink href="/feedback" label="Feedback & roadmap" />
           </div>
         </nav>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main className="flex-1 bg-slate-950/90 p-4 md:p-6 flex justify-center">
-        <div className="w-full max-w-6xl">
+      {/* MAIN CONTENT – centered, max width */}
+      <main className="flex-1 bg-slate-950/90">
+        <div className="mx-auto flex h-full w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
           {children}
         </div>
       </main>
