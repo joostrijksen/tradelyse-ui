@@ -1,4 +1,3 @@
-// app/(dashboards)/layout.tsx
 'use client'
 
 import Link from 'next/link'
@@ -29,7 +28,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 export default function DashboardsLayout({ children }: Props) {
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
-      {/* SIDEBAR */}
+      {/* SIDEBAR – vaste breedte */}
       <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex overflow-y-auto">
         {/* LOGO */}
         <div className="mb-6 flex items-center gap-3">
@@ -50,16 +49,18 @@ export default function DashboardsLayout({ children }: Props) {
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
 
-          {/* FEEDBACK SECTION */}
+          {/* FEEDBACK blokje */}
           <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
             <NavLink href="/feedback" label="Feedback & roadmap" />
           </div>
         </nav>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN CONTENT – vult rest, maar met ruime max-breedte */}
       <main className="flex-1 bg-slate-950/90 p-4 md:p-6">
-        {children}
+        <div className="mx-auto w-full max-w-[1500px]">
+          {children}
+        </div>
       </main>
     </div>
   )
