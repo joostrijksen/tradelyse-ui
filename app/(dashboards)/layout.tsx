@@ -3,6 +3,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 type Props = {
   children: React.ReactNode
@@ -27,6 +29,24 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 export default function DashboardsLayout({ children }: Props) {
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (user && user.email === 'joostrijksen@me.com') {
+        setIsAdmin(true)
+      } else {
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdmin()
+  }, [])
+
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
       {/* SIDEBAR */}
@@ -50,6 +70,13 @@ export default function DashboardsLayout({ children }: Props) {
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
 
+          {/* ADMIN – alleen zichtbaar voor jouw account */}
+          {isAdmin && (
+            <div className="mt-4 rounded-lg border border-emerald-700/70 bg-emerald-900/20 p-2">
+              <NavLink href="/admin" label="Admin · Approvals" />
+            </div>
+          )}
+
           {/* FEEDBACK SECTION */}
           <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
             <NavLink href="/feedback" label="Feedback & roadmap" />
@@ -61,10 +88,7 @@ export default function DashboardsLayout({ children }: Props) {
           <Link href="/privacy" className="block hover:text-slate-300">
             Privacy Policy
           </Link>
-          <Link
-            href="/terms"
-            className="mt-1 block hover:text-slate-300"
-          >
+          <Link href="/terms" className="mt-1 block hover:text-slate-300">
             Terms of Use
           </Link>
           <a
