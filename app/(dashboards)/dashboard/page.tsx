@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import StatCard from '@/components/StatCard'
+import StatCard from '@/app/components/StatCard'
 
 // Trade shape (aligned with your trades table)
 type Trade = {
@@ -191,6 +191,12 @@ export default function DashboardPage() {
     })
   }
 
+  // Alleen werkdagen (ma–vr) voor de mobiele kalender
+  const daysWeekdays = days.filter(day => {
+    const jsDay = day.date.getDay() // 0 = zo, 1 = ma, ... 6 = za
+    return jsDay >= 1 && jsDay <= 5
+  })
+
   const monthLabel = currentMonth.toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
@@ -220,7 +226,6 @@ export default function DashboardPage() {
             const key = formatDateKeyLocal(d)
             return key === selectedDateKey
           })
-          // newest at the top
           .sort(
             (a, b) =>
               new Date(b.timestamp as string).getTime() -
@@ -237,9 +242,9 @@ export default function DashboardPage() {
 
   // ====== Render ======
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-6">
       {/* HEADER */}
-      <header className="mb-2">
+      <header className="mb-1">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">
           Overview of your performance.
@@ -247,7 +252,7 @@ export default function DashboardPage() {
       </header>
 
       {/* 4 STAT CARDS */}
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total trades" value={totalTrades.toString()} />
         <StatCard
           label="Total PnL"
@@ -267,8 +272,8 @@ export default function DashboardPage() {
       </section>
 
       {/* EQUITY CURVE */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-        <div className="mb-2 flex items-center justify-between">
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-6">
+        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-sm font-medium text-slate-200">
             Equity curve (cumulative PnL)
           </h2>
@@ -314,10 +319,10 @@ export default function DashboardPage() {
       </section>
 
       {/* ROW: LEFT CALENDAR, RIGHT EVALUATION + TRADES FOR DAY */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         {/* PROFIT CALENDAR */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="mb-2 flex items-center justify-between">
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-6">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium text-slate-200">
                 Profit calendar (recent weeks)
@@ -343,8 +348,8 @@ export default function DashboardPage() {
             </div>
 
             <span className="text-xs text-slate-500">
-              Top: date (DD/MM) · Center: PnL · Bottom: trade count · Click a
-              day to view its trades.
+              Top: date (DD/MM) · Center: PnL · Bottom: trade count · Tap a day
+              to view its trades.
             </span>
           </div>
 
@@ -353,72 +358,143 @@ export default function DashboardPage() {
               Loading…
             </div>
           ) : (
-            <div className="space-y-2 text-[11px]">
-              {/* Weekday labels */}
-              <div className="grid grid-cols-7 gap-1 px-1">
-                {weekdayLabels.map((label, idx) => (
-                  <div
-                    key={`weekday-${idx}`}
-                    className="text-center font-medium uppercase tracking-wide text-slate-500"
-                  >
-                    {label}
-                  </div>
-                ))}
+            <div className="space-y-4 text-[11px]">
+              {/* 📱 MOBIEL: alleen maandag t/m vrijdag, 5 kolommen */}
+              <div className="sm:hidden">
+                {/* Weekday labels (ma–vr) */}
+                <div className="grid grid-cols-5 gap-1 px-1">
+                  {weekdayLabels.slice(0, 5).map((label, idx) => (
+                    <div
+                      key={`weekday-mobile-${idx}`}
+                      className="text-center font-medium uppercase tracking-wide text-slate-500"
+                    >
+                      {label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar cells (alleen werkdagen) */}
+                <div className="mt-1 grid grid-cols-5 gap-1">
+                  {daysWeekdays.map((day, index) => {
+                    const dateLabel = day.date.toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                    })
+
+                    const hasTrades = day.count > 0
+                    const isSelected = selectedDateKey === day.key
+
+                    let bg = day.inMonth
+                      ? 'bg-slate-900/60 border-slate-800'
+                      : 'bg-slate-900/40 border-slate-900/40'
+
+                    if (hasTrades && day.pnl > 0) {
+                      bg = 'bg-emerald-500/20 border-emerald-500/60'
+                    } else if (hasTrades && day.pnl < 0) {
+                      bg = 'bg-red-500/20 border-red-500/60'
+                    }
+
+                    const ring = isSelected ? 'ring-1 ring-emerald-400' : ''
+
+                    return (
+                      <button
+                        key={day.key + '-mobile-' + index}
+                        type="button"
+                        onClick={() => setSelectedDateKey(day.key)}
+                        className={`flex aspect-square flex-col rounded-xl border px-2 py-1 text-[11px] transition ${
+                          hasTrades
+                            ? 'cursor-pointer hover:border-emerald-400/80'
+                            : 'cursor-default'
+                        } ${bg} ${ring}`}
+                      >
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
+                          <span>{dateLabel}</span>
+                        </div>
+                        <div className="flex flex-1 flex-col items-center justify-center text-center">
+                          <div className="text-sm font-semibold text-slate-100">
+                            {hasTrades ? day.pnl.toFixed(1) : ''}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-300">
+                            {hasTrades
+                              ? `${day.count} trade${
+                                  day.count !== 1 ? 's' : ''
+                                }`
+                              : '–'}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
-              {/* Calendar cells */}
-              <div className="grid grid-cols-7 gap-1">
-                {days.map((day, index) => {
-                  const dateLabel = day.date.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                  })
-
-                  const hasTrades = day.count > 0
-                  const isSelected = selectedDateKey === day.key
-
-                  let bg = day.inMonth
-                    ? 'bg-slate-900/60 border-slate-800'
-                    : 'bg-slate-900/40 border-slate-900/40'
-
-                  if (hasTrades && day.pnl > 0) {
-                    bg = 'bg-emerald-500/20 border-emerald-500/60'
-                  } else if (hasTrades && day.pnl < 0) {
-                    bg = 'bg-red-500/20 border-red-500/60'
-                  }
-
-                  const ring = isSelected ? 'ring-1 ring-emerald-400' : ''
-
-                  return (
-                    <button
-                      key={day.key + '-' + index}
-                      type="button"
-                      onClick={() => setSelectedDateKey(day.key)}
-                      className={`flex aspect-square flex-col rounded-xl border px-2 py-1 text-[11px] transition ${
-                        hasTrades
-                          ? 'cursor-pointer hover:border-emerald-400/80'
-                          : 'cursor-default'
-                      } ${bg} ${ring}`}
+              {/* 💻 TABLET/DESKTOP: volledige week ma–zo, 7 kolommen */}
+              <div className="hidden sm:block">
+                {/* Weekday labels */}
+                <div className="grid grid-cols-7 gap-1 px-1">
+                  {weekdayLabels.map((label, idx) => (
+                    <div
+                      key={`weekday-${idx}`}
+                      className="text-center font-medium uppercase tracking-wide text-slate-500"
                     >
-                      {/* Date (top-left) */}
-                      <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
-                        <span>{dateLabel}</span>
-                      </div>
+                      {label}
+                    </div>
+                  ))}
+                </div>
 
-                      {/* Center: PnL + trade count */}
-                      <div className="flex flex-1 flex-col items-center justify-center text-center">
-                        <div className="text-sm font-semibold text-slate-100">
-                          {hasTrades ? day.pnl.toFixed(1) : ''}
+                {/* Calendar cells */}
+                <div className="mt-1 grid grid-cols-7 gap-1">
+                  {days.map((day, index) => {
+                    const dateLabel = day.date.toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                    })
+
+                    const hasTrades = day.count > 0
+                    const isSelected = selectedDateKey === day.key
+
+                    let bg = day.inMonth
+                      ? 'bg-slate-900/60 border-slate-800'
+                      : 'bg-slate-900/40 border-slate-900/40'
+
+                    if (hasTrades && day.pnl > 0) {
+                      bg = 'bg-emerald-500/20 border-emerald-500/60'
+                    } else if (hasTrades && day.pnl < 0) {
+                      bg = 'bg-red-500/20 border-red-500/60'
+                    }
+
+                    const ring = isSelected ? 'ring-1 ring-emerald-400' : ''
+
+                    return (
+                      <button
+                        key={day.key + '-' + index}
+                        type="button"
+                        onClick={() => setSelectedDateKey(day.key)}
+                        className={`flex aspect-square flex-col rounded-xl border px-2 py-1 text-[11px] transition ${
+                          hasTrades
+                            ? 'cursor-pointer hover:border-emerald-400/80'
+                            : 'cursor-default'
+                        } ${bg} ${ring}`}
+                      >
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
+                          <span>{dateLabel}</span>
                         </div>
-                        <div className="mt-0.5 text-[11px] text-slate-300">
-                          {hasTrades
-                            ? `${day.count} trade${day.count !== 1 ? 's' : ''}`
-                            : '–'}
+                        <div className="flex flex-1 flex-col items-center justify-center text-center">
+                          <div className="text-sm font-semibold text-slate-100">
+                            {hasTrades ? day.pnl.toFixed(1) : ''}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-300">
+                            {hasTrades
+                              ? `${day.count} trade${
+                                  day.count !== 1 ? 's' : ''
+                                }`
+                              : '–'}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}

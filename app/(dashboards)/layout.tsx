@@ -1,5 +1,4 @@
-// app/(dashboards)/layout.tsx
-'use client'
+"use client"
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -31,6 +30,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export default function DashboardsLayout({ children }: Props) {
   const [isAdmin, setIsAdmin] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -47,10 +47,57 @@ export default function DashboardsLayout({ children }: Props) {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-50">
-      {/* SIDEBAR */}
+    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-50 md:flex-row">
+      
+      {/* 📱 MOBILE TOP NAV */}
+      <div className="flex h-14 items-center justify-between border-b border-slate-800 bg-slate-900 px-4 md:hidden">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="Tradelyse logo"
+            width={28}
+            height={28}
+            className="rounded-full"
+          />
+          <span className="text-lg font-semibold">Tradelyse</span>
+        </div>
+
+        {/* Hamburger */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="space-y-1"
+        >
+          <span className="block h-0.5 w-6 bg-white"></span>
+          <span className="block h-0.5 w-6 bg-white"></span>
+          <span className="block h-0.5 w-6 bg-white"></span>
+        </button>
+      </div>
+
+      {/* 📱 MOBILE MENU */}
+      {mobileOpen && (
+        <aside className="md:hidden border-b border-slate-800 bg-slate-900 px-4 py-4 space-y-2">
+          <NavLink href="/dashboard" label="Dashboard" />
+          <NavLink href="/trades" label="Trades" />
+          <NavLink href="/analytics" label="Analytics" />
+          <NavLink href="/api-keys" label="API Keys" />
+          <NavLink href="/settings" label="Settings" />
+          <NavLink href="/feedback" label="Feedback & roadmap" />
+
+          {isAdmin && (
+            <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                Admin
+              </p>
+              <NavLink href="/admin" label="User approvals" />
+            </div>
+          )}
+        </aside>
+      )}
+
+      {/* 💻 DESKTOP SIDEBAR */}
       <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
-        {/* LOGO */}
+        
+        {/* Logo */}
         <div className="mb-6 flex items-center gap-3">
           <Image
             src="/logo.png"
@@ -65,7 +112,7 @@ export default function DashboardsLayout({ children }: Props) {
           </div>
         </div>
 
-        {/* MAIN NAV */}
+        {/* Navigation */}
         <nav className="space-y-1 flex-1">
           <NavLink href="/dashboard" label="Dashboard" />
           <NavLink href="/trades" label="Trades" />
@@ -73,12 +120,12 @@ export default function DashboardsLayout({ children }: Props) {
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
 
-          {/* FEEDBACK SECTION */}
+          {/* Feedback */}
           <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
             <NavLink href="/feedback" label="Feedback & roadmap" />
           </div>
 
-          {/* ADMIN SECTION – alleen zichtbaar voor jouw account */}
+          {/* Admin */}
           {isAdmin && (
             <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
@@ -89,45 +136,25 @@ export default function DashboardsLayout({ children }: Props) {
           )}
         </nav>
 
-        {/* FOOTER LINKS IN SIDEBAR */}
+        {/* Sidebar footer */}
         <div className="mt-4 border-t border-slate-800 pt-3 text-[11px] text-slate-500">
-          <Link href="/privacy" className="block hover:text-slate-300">
-            Privacy Policy
-          </Link>
-          <Link href="/terms" className="mt-1 block hover:text-slate-300">
-            Terms of Use
-          </Link>
-          <a
-            href="mailto:info@tradelyse.com"
-            className="mt-1 block hover:text-slate-300"
-          >
-            info@tradelyse.com
-          </a>
+          <Link href="/privacy" className="block hover:text-slate-300">Privacy Policy</Link>
+          <Link href="/terms" className="mt-1 block hover:text-slate-300">Terms of Use</Link>
+          <a href="mailto:info@tradelyse.com" className="mt-1 block hover:text-slate-300">info@tradelyse.com</a>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
       <main className="flex-1 bg-slate-950/90 p-4 md:p-6">
-        {/* max-w: voorkomt dat Trades / Dashboard te breed worden op grote schermen */}
         <div className="mx-auto w-full max-w-6xl">
           {children}
 
-          {/* PAGE FOOTER */}
           <footer className="mt-10 pb-4 text-center text-[11px] text-slate-600">
-            <Link href="/privacy" className="hover:text-slate-300">
-              Privacy Policy
-            </Link>
+            <Link href="/privacy" className="hover:text-slate-300">Privacy Policy</Link>
             {' • '}
-            <Link href="/terms" className="hover:text-slate-300">
-              Terms of Use
-            </Link>
+            <Link href="/terms" className="hover:text-slate-300">Terms of Use</Link>
             {' • '}
-            <a
-              href="mailto:info@tradelyse.com"
-              className="hover:text-slate-300"
-            >
-              info@tradelyse.com
-            </a>
+            <a href="mailto:info@tradelyse.com" className="hover:text-slate-300">info@tradelyse.com</a>
           </footer>
         </div>
       </main>

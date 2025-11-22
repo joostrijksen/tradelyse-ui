@@ -116,32 +116,58 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="mt-1 text-sm text-slate-400">
-          Adjust your account and trading preferences here. For now, these are stored locally in your browser.
+          Manage your account and trading preferences. For now, these settings are stored locally in your browser.
         </p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        
         {/* Account card */}
         <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 lg:col-span-1">
           <h2 className="text-sm font-medium text-slate-200">Account</h2>
           {loadingUser ? (
             <div className="mt-4 text-sm text-slate-500">Loading…</div>
           ) : (
-            <div className="mt-4 space-y-3 text-sm">
-              <div>
-                <div className="text-xs uppercase text-slate-500">Email</div>
-                <div className="mt-1 font-medium text-slate-100 break-all">
-                  {email}
+            <>
+              <div className="mt-4 space-y-3 text-sm">
+                <div>
+                  <div className="text-xs uppercase text-slate-500">
+                    Email
+                  </div>
+                  <div className="mt-1 break-all font-medium text-slate-100">
+                    {email}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase text-slate-500">
+                    Account created
+                  </div>
+                  <div className="mt-1 text-slate-200">
+                    {createdAt || '—'}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-xs uppercase text-slate-500">
-                  Account created
+
+              {/* Logout area */}
+              <div className="mt-5 border-t border-slate-800 pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Session
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Log out from Tradelyse on this device.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded-xl border border-slate-600 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800"
+                  >
+                    Log out
+                  </button>
                 </div>
-                <div className="mt-1 text-slate-200">{createdAt || '—'}</div>
               </div>
-            </div>
+            </>
           )}
         </section>
 
@@ -157,7 +183,6 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-
             {/* Base currency */}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -226,7 +251,9 @@ export default function SettingsPage() {
                 <select
                   value={settings.dateFormat}
                   onChange={e =>
-                    handleChange('dateFormat')(e.target.value as UiSettings['dateFormat'])
+                    handleChange('dateFormat')(
+                      e.target.value as UiSettings['dateFormat'],
+                    )
                   }
                   className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
                 >
@@ -261,23 +288,6 @@ export default function SettingsPage() {
           </div>
         </section>
       </div>
-
-      {/* Danger zone */}
-      <section className="mt-6 rounded-2xl border border-red-900 bg-red-950/40 p-5">
-        <h2 className="text-sm font-medium text-red-200">Danger zone</h2>
-        <p className="mt-1 text-xs text-red-100/80">
-          Logging out will end your session on this device. Your data in Supabase remains intact.
-        </p>
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-xl border border-red-500/70 px-4 py-2 text-sm font-medium text-red-100 hover:bg-red-500/10"
-          >
-            Log out
-          </button>
-        </div>
-      </section>
     </div>
   )
 }
