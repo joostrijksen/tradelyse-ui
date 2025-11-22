@@ -6,7 +6,20 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Tradelyse',
-  description: 'Trading journal',
+  description: 'A serious trading journal with zero extra effort.',
+  icons: {
+    icon: '/favicon.png',          // standaard favicon
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',         // iOS icon
+  },
+  metadataBase: new URL('https://tradelyse.com'),
+  openGraph: {
+    title: 'Tradelyse – Trading journal',
+    description: 'A serious trading journal with zero extra effort.',
+    url: 'https://tradelyse.com',
+    siteName: 'Tradelyse',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({

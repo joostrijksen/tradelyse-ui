@@ -1,9 +1,10 @@
 // app/(dashboards)/layout.tsx
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabaseClient'
 
 type Props = {
@@ -33,14 +34,12 @@ export default function DashboardsLayout({ children }: Props) {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data.user) return
 
-      if (user && user.email === 'joostrijksen@me.com') {
+      const email = data.user.email?.toLowerCase() ?? ''
+      if (email === 'joostrijksen@me.com') {
         setIsAdmin(true)
-      } else {
-        setIsAdmin(false)
       }
     }
 
@@ -53,9 +52,13 @@ export default function DashboardsLayout({ children }: Props) {
       <aside className="hidden w-60 flex-col border-r border-slate-800 bg-slate-950/80 p-4 md:flex">
         {/* LOGO */}
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-slate-950">
-            T
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Tradelyse logo"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
           <div>
             <div className="text-sm font-semibold">Tradelyse</div>
             <div className="text-xs text-slate-500">TRADE JOURNAL</div>
@@ -70,17 +73,20 @@ export default function DashboardsLayout({ children }: Props) {
           <NavLink href="/api-keys" label="API Keys" />
           <NavLink href="/settings" label="Settings" />
 
-          {/* ADMIN – alleen zichtbaar voor jouw account */}
-          {isAdmin && (
-            <div className="mt-4 rounded-lg border border-emerald-700/70 bg-emerald-900/20 p-2">
-              <NavLink href="/admin" label="Admin · Approvals" />
-            </div>
-          )}
-
           {/* FEEDBACK SECTION */}
           <div className="mt-4 rounded-lg border border-slate-800 bg-slate-900/40 p-2">
             <NavLink href="/feedback" label="Feedback & roadmap" />
           </div>
+
+          {/* ADMIN SECTION – alleen zichtbaar voor jouw account */}
+          {isAdmin && (
+            <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-2">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                Admin
+              </p>
+              <NavLink href="/admin" label="User approvals" />
+            </div>
+          )}
         </nav>
 
         {/* FOOTER LINKS IN SIDEBAR */}

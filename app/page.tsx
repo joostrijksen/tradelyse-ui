@@ -1,7 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabaseClient'
 
 const EARLY_ACCESS_CAPACITY = 20
@@ -31,14 +32,9 @@ export default function LandingPage() {
   }, [])
 
   const spotsLeft =
-    spotsUsed === null ? null : Math.max(EARLY_ACCESS_CAPACITY - spotsUsed, 0)
-
-  const spotsLabel =
     spotsUsed === null
-      ? 'Checking available seats…'
-      : spotsUsed >= EARLY_ACCESS_CAPACITY
-      ? `Early access is full — new signups go on the waitlist.`
-      : `${spotsUsed} / ${EARLY_ACCESS_CAPACITY} spots filled • ${spotsLeft} left`
+      ? null
+      : Math.max(EARLY_ACCESS_CAPACITY - spotsUsed, 0)
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
@@ -46,15 +42,24 @@ export default function LandingPage() {
       <header className="border-b border-slate-800">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400">
-              T
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Tradelyse logo"
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
             <span className="text-sm font-semibold tracking-tight">
               Tradelyse
             </span>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
+            {spotsUsed !== null && (
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/5 px-3 py-1 text-[11px] font-medium text-emerald-300">
+                {spotsUsed}/{EARLY_ACCESS_CAPACITY} early access seats filled
+              </span>
+            )}
             <button
               onClick={() => router.push('/login')}
               className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-slate-200 hover:bg-slate-800"
@@ -75,10 +80,13 @@ export default function LandingPage() {
               <p className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-300">
                 Early access · Free during beta
               </p>
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-slate-950/70 px-3 py-1 text-[11px] text-emerald-300">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{spotsLabel}</span>
-              </div>
+              <p className="text-[11px] font-medium text-emerald-400">
+                {spotsLeft === null
+                  ? 'Checking available seats…'
+                  : spotsLeft > 0
+                  ? `${spotsLeft} spots left for serious testers`
+                  : 'Beta is full — new signups go on the waitlist'}
+              </p>
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
@@ -92,7 +100,7 @@ export default function LandingPage() {
               Tradelyse logs your trades automatically from cTrader, TradingView or
               (soon) MT4/MT5. Built for traders who want real data — not guesses.
               In early access you use Tradelyse for free, in exchange for honest
-              feedback, testing and feature requests.
+              feedback and testing.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
@@ -198,7 +206,7 @@ export default function LandingPage() {
                 <li>• Free access during the entire beta.</li>
                 <li>• A permanent discount once pricing goes live.</li>
                 <li>• Priority support & direct contact with the builder.</li>
-                <li>• Your requests directly influence the roadmap.</li>
+                <li>• Your requests influence the roadmap.</li>
               </ul>
             </div>
 
@@ -250,9 +258,7 @@ export default function LandingPage() {
       {/* How it works */}
       <section className="border-b border-slate-900 bg-slate-950">
         <div className="mx-auto max-w-6xl px-4 py-10">
-          <h2 className="text-lg font-semibold text-slate-100">
-            How it works
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-100">How it works</h2>
           <p className="mt-2 max-w-2xl text-sm text-slate-400">
             You can have your first trades flowing into Tradelyse in minutes.
           </p>
@@ -262,8 +268,8 @@ export default function LandingPage() {
               <p className="text-xs font-semibold text-emerald-300">Step 1</p>
               <p className="mt-1 font-medium">Create an account & API key</p>
               <p className="mt-2 text-xs text-slate-400">
-                Log in, generate your personal API key and copy your user ID. No
-                credit card required.
+                Log in, generate your personal API key and copy your user ID. No credit
+                card required.
               </p>
             </li>
 
@@ -271,8 +277,8 @@ export default function LandingPage() {
               <p className="text-xs font-semibold text-emerald-300">Step 2</p>
               <p className="mt-1 font-medium">Connect your platform</p>
               <p className="mt-2 text-xs text-slate-400">
-                Start with the cTrader bot or an HTTP integration. MT4/MT5 support
-                is coming — early adopters get it first.
+                Start with the cTrader bot or an HTTP integration. MT4/MT5 support is
+                coming — early adopters get it first.
               </p>
             </li>
 
@@ -280,9 +286,8 @@ export default function LandingPage() {
               <p className="text-xs font-semibold text-emerald-300">Step 3</p>
               <p className="mt-1 font-medium">Trade, review, refine</p>
               <p className="mt-2 text-xs text-slate-400">
-                Use dashboards, analytics and the profit calendar to tighten your
-                trading plan. Share what&apos;s missing — it might be the next
-                feature shipped.
+                Use dashboards, analytics and the profit calendar to tighten your trading
+                plan. Share what&apos;s missing — it might be the next feature shipped.
               </p>
             </li>
           </ol>
@@ -295,8 +300,7 @@ export default function LandingPage() {
               Join as early adopter
             </button>
             <p className="mt-2 text-[11px] text-slate-500">
-              Limited spots. When the beta fills up, new accounts will go on a
-              waitlist.
+              Limited spots. When the beta fills up, new accounts will go on a waitlist.
             </p>
           </div>
         </div>
