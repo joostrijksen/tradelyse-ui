@@ -55,20 +55,51 @@ export default function AuthPage() {
 
     try {
       if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signUp({
+        // 1) Signup
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         })
 
         if (signUpError) {
           setError(signUpError.message)
-        } else {
-          setMessage(
-            'Account created. I will review your request and approve it if it fits the early access group.',
-          )
-          router.push('/pending-approval')
+          setLoading(false)
+          return
         }
+
+        const user = data.user
+
+        // 2) Insert in profiles → BELANGRIJK
+        if (user) {
+          const { error: profileError } = await supabase
+  .from('profiles')
+  .upsert(
+    {
+      id: user.id,
+      email: user.email,
+      is_approved: false,
+    },
+    {
+      onConflict: 'id',
+      ignoreDuplicates: true,
+    },
+  )
+
+          if (profileError) {
+            console.error('Error inserting profile:', profileError)
+            // user blijft wel bestaan maar is niet zichtbaar in admin
+            // daarom is deze fout belangrijk!
+          }
+        }
+
+        // 3) Doorsturen naar pending-approval pagina
+        setMessage(
+          'Account created. I will review your request and approve it if it fits the early access group.',
+        )
+        router.push('/pending-approval')
+
       } else {
+        // Login flow
         const { data, error: signInError } =
           await supabase.auth.signInWithPassword({
             email,
@@ -77,22 +108,24 @@ export default function AuthPage() {
 
         if (signInError || !data.user) {
           setError(signInError?.message ?? 'Login failed.')
-        } else {
-          // Check of gebruiker approved is
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('is_approved')
-            .eq('id', data.user.id)
-            .single()
+          setLoading(false)
+          return
+        }
 
-          if (profileError) {
-            console.error(profileError)
-            setError('Could not check your approval status.')
-          } else if (!profile?.is_approved) {
-            router.push('/pending-approval')
-          } else {
-            router.push('/dashboard')
-          }
+        // Check approved
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_approved')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error(profileError)
+          setError('Could not check your approval status.')
+        } else if (!profile?.is_approved) {
+          router.push('/pending-approval')
+        } else {
+          router.push('/dashboard')
         }
       }
     } catch (err: any) {
@@ -222,8 +255,7 @@ export default function AuthPage() {
         </form>
 
         <p className="mt-4 text-center text-[11px] text-slate-500">
-          Your account is managed via Supabase. Never share your password with
-          anyone.
+          Never share your password with anyone.
         </p>
       </div>
     </main>

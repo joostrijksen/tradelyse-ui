@@ -82,6 +82,7 @@ export default function AdminPage() {
     setActionId(id)
     setError(null)
 
+    // Alleen Supabase updaten en lokale state bijwerken – geen e-mail meer
     const { error } = await supabase
       .from('profiles')
       .update({ is_approved: approved })
